@@ -2,15 +2,15 @@
 import fitsio
 import numpy as np
 import os 
-from log import logger
+from .log import logger
 
 
 
 
 class MapLoader:
-    def __init__(self, survey, base_directory, z, age, mag_max,mag_min,name_fstring=None):
+    def __init__(self, survey, data_directory, z, age, mag_max,mag_min,name_fstring=None):
         self.survey = survey
-        self.base_directory = base_directory
+        self.data_directory = data_directory
         self.z = z # metallicity 
         self.age = age 
         self.mag_max = mag_max
@@ -20,9 +20,8 @@ class MapLoader:
     def get_filename(self,name_fstring=None):
         if name_fstring is None:
             name_fstring = "{survey}_iso_hpxcube_z{z:.4f}_a{age:.1f}_gmax{mag_max}_gmin{mag_min}.fits.gz"
-            print(name_fstring)
 
-        filename = self.base_directory + name_fstring.format(survey=self.survey, z=self.z, age=self.age, mag_max=self.mag_max, mag_min=self.mag_min) 
+        filename = self.data_directory + name_fstring.format(survey=self.survey, z=self.z, age=self.age, mag_max=self.mag_max, mag_min=int(self.mag_min)) 
         return filename
     
     def load_data(self):
@@ -35,7 +34,7 @@ class MapLoader:
     def load_hpxcube(filename):
         if not os.path.exists(filename):
             logger.info(f"{filename} does not exist")
-            exit
+            raise FileNotFoundError
 
         logger.info(f"Reading {filename}...")
         
@@ -47,14 +46,14 @@ class MapLoader:
                 hpxcube = f['HPXCUBE'].read()
             
             if 'FRACDET' not in f:
-                logger.info(f"skipping fracdet...")
+                logger.debug(f"skipping fracdet...")
                 fracdet = None
             else:
                 fracdet = f['FRACDET'].read()
                 logger.info(f'fracdet read with {np.sum(fracdet > 0.5)} covered pixels')
 
             if 'MODULUS' not in f:
-                logger.info('no modulus array found...')
+                logger.debug('no modulus array found...')
                 modulus = np.array([16.])
             else:
                 modulus = f['MODULUS'].read()
